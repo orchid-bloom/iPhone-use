@@ -85,6 +85,18 @@ sh scripts/install.sh
 
 技能引导 Codex 完成诊断、设备发现、签名配置、获取 WDA、后台构建与启动。已配置过的设备会复用配置和构建，正常任务不需要每次重装。`pua_ready` 返回 `ready=true` 后才开始手机任务。
 
+## 在 Claude Code 中使用
+
+iPhone Use 也可以作为 Claude Code 插件使用。两个版本共用同一个 MCP 服务、技能与本机运行数据，已在 Codex 中配置好的设备、签名与 WDA 构建可直接复用。依赖与上文相同，另需已登录的 Claude Code CLI。
+
+```sh
+sh scripts/install_claude.sh
+```
+
+脚本在用户范围注册本地 marketplace `iphone-use-local` 并安装 `iphone-use@iphone-use-local`，不会修改 Codex 的插件与 MCP 注册。安装后新开 Claude Code 会话，或在已有会话中执行 `/reload-plugins`，再用上面同样的 `iphone-use-setup` 提示词连接手机。
+
+建议的权限设置、实时手机屏幕、与 Codex 版本的差异及卸载方式，见 [在 Claude Code 中使用 iPhone Use](README.claude.md)。
+
 ## 可以做什么
 
 | 功能 | 示例 |

@@ -82,6 +82,18 @@ Reconnect or start a new chat, enable **iPhone Use**, and ask:
 
 Setup covers diagnostics, device discovery, signing configuration, download, background build, and startup. Existing configurations and builds are reused. Phone tasks start only after `pua_ready` returns `ready=true`.
 
+## Use with Claude Code
+
+iPhone Use also works as a Claude Code plugin. Both versions share the same MCP server, skills, and local runtime data, so a device, signing setup, and WDA build already configured in Codex can be reused. Requirements are the same as above, plus a signed-in Claude Code CLI.
+
+```sh
+sh scripts/install_claude.sh
+```
+
+The script registers the local marketplace `iphone-use-local` at user scope and installs `iphone-use@iphone-use-local`. It does not modify the Codex plugin or MCP registration. After installing, start a new Claude Code session or run `/reload-plugins` in an open one, then connect the phone with the same `iphone-use-setup` prompt shown above.
+
+For recommended permissions, the live phone screen, differences from the Codex version, and uninstalling, see [Using iPhone Use in Claude Code](README.claude.md) (Chinese).
+
 ## Features
 
 | Feature | Behavior |
