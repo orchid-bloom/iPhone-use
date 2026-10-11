@@ -11,7 +11,8 @@
   "mcpServers": {
     "iphone_use": {
       "command": "python3",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/server/iphone_use.py"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/iphone_use.py"],
+      "env": { "IPHONE_USE_HOST": "claude" }
     }
   }
 }

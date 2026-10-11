@@ -37,8 +37,10 @@ class ClaudePackagingTests(unittest.TestCase):
         manifest = json.loads((self.plugin / '.claude-plugin/plugin.json').read_text())
         version = json.loads((ROOT / 'plugin.json').read_text())['version']
         self.assertEqual((manifest['name'], manifest['version']), ('iphone-use', version))
+        # IPHONE_USE_HOST 让匿名统计区分 Claude 与 Codex（Codex 不设置，默认仍记为 Codex）。
         self.assertEqual(manifest['mcpServers'], {'iphone_use': {
-            'command': 'python3', 'args': ['${CLAUDE_PLUGIN_ROOT}/server/iphone_use.py']}})
+            'command': 'python3', 'args': ['${CLAUDE_PLUGIN_ROOT}/server/iphone_use.py'],
+            'env': {'IPHONE_USE_HOST': 'claude'}}})
 
     def test_codex_only_files_stay_out_of_claude_plugin(self):
         files = {path.relative_to(self.plugin).as_posix() for path in self.plugin.rglob('*') if path.is_file()}

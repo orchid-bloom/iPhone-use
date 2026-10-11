@@ -32,6 +32,8 @@ def plugin_root():
 
 
 ROOT = plugin_root()
+# 查看服务只在 Claude Code 中使用：匿名统计的来源记为 Claude，后台 serve 子进程继承此变量。
+os.environ.setdefault('IPHONE_USE_HOST', 'claude')
 sys.path.insert(0, str(ROOT / 'server'))
 from iphone_use import Runtime, tool_result  # noqa: E402
 from wda_setup import state_directory  # noqa: E402

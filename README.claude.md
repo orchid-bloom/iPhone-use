@@ -76,8 +76,8 @@ python3 dist/claude/iphone-use/viewer/screen_viewer.py stop
 ## 注意事项
 
 - **不要同时在 Codex 与 Claude Code 中操作手机。** 两边共用同一台设备与同一个 WDA 服务，操作锁会让动作排队，一方重建会话也可能打断另一方正在进行的任务。两边同时打开实时屏幕时，各自建立一路画面连接。
-- **在本仓库目录内打开 Claude Code 时**，根目录的 `.mcp.json`（Codex 格式）会被识别为项目级 MCP 服务并连接失败。这不影响插件，拒绝或禁用该项目级服务即可。
-- 匿名使用统计与 Codex 版本相同，关闭方式见 [埋点与分析说明](ANALYTICS.md)。
+- **在本仓库目录内打开 Claude Code 时**，根目录的 `.mcp.json` 是 Codex 格式（使用 `${PLUGIN_ROOT}`），仓库中的 `.claude/settings.json` 已将其中的 `iphone_use` 停用，手机工具由插件提供。`claude mcp list` 仍会对该文件显示一条缺少 `PLUGIN_ROOT` 的诊断警告，可以忽略。
+- 匿名使用统计与 Codex 版本相同，事件的 `source` 记为 `claude_plugin_mcp`（Codex 为 `codex_plugin_mcp`），关闭方式见 [埋点与分析说明](ANALYTICS.md)。
 
 ## 卸载
 
