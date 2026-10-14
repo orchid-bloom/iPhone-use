@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def plugin_root():
-    """仓库内为 scripts/claude/viewer，安装包内为 <插件根目录>/viewer。"""
+    """仓库内为 claude/viewer，安装包内为 <插件根目录>/viewer。"""
     for candidate in HERE.parents:
         if (candidate / 'server' / 'iphone_use.py').is_file():
             return candidate
@@ -53,7 +53,7 @@ def host_page():
     """viewer.html 是 host.html 模板与 host.ts 的打包产物（npm run build）。"""
     page = HERE / 'viewer.html'
     if not page.is_file():
-        raise SystemExit('Built viewer page not found; run npm run build in scripts/claude/viewer.')
+        raise SystemExit('Built viewer page not found; run npm run build in claude/viewer.')
     return page
 
 

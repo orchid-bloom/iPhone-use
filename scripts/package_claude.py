@@ -8,7 +8,7 @@ import shutil
 import sys
 
 ROOT=Path(__file__).resolve().parents[1]
-TEMPLATE=ROOT/'scripts'/'claude'
+TEMPLATE=ROOT/'claude'
 DEFAULT_STAGE=ROOT/'dist'/'claude'
 MARKETPLACE='iphone-use-local'
 PLUGIN='iphone-use'
@@ -37,7 +37,6 @@ def plugin_files(packaging):
     for name in VIEWER_FILES:yield TEMPLATE/'viewer'/name,Path('viewer')/name
     # 钩子模块：READY 后自动在右侧浏览器面板打开实时手机屏幕。
     for name in HOOK_FILES:yield TEMPLATE/'hooks'/name,Path('hooks')/name
-    yield ROOT/'README.claude.md',Path('README.claude.md')
 
 
 def write_json(path,data):

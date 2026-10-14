@@ -1,6 +1,6 @@
 # 在 Claude Code 中使用 iPhone Use
 
-**中文** · 本页只说明 Claude Code 的安装与差异；功能、依赖与 WDA 配置见 [README](README.md)。
+**中文** · 本页只说明 Claude Code 的安装与差异；功能、依赖与 WDA 配置见 [README](../README.md)。
 
 Claude Code 版本与 Codex 版本共用同一个 MCP 服务、技能与本机运行数据（`~/.local/share/iphone-use/`）。已在 Codex 中配置好的设备、签名与 WDA 构建可以直接复用，无需重装。
 
@@ -71,13 +71,13 @@ python3 dist/claude/iphone-use/viewer/screen_viewer.py stop
 
 `start` 输出的 `url` 可在任意本机浏览器中打开，终端中的 Claude Code 也可以这样查看。服务与 MCP 服务共用运行数据和操作锁：认证暂停、锁屏提示会同步显示，按钮不会与正在执行的手机操作冲突。每个实例使用随机令牌，只接受本机页面发起的请求，10 分钟无请求后自动退出。
 
-修改 `scripts/claude/viewer/host.ts` 或 `host.html` 后，在该目录运行 `npm install` 与 `npm run build` 重新生成 `viewer.html`，再运行安装脚本。钩子的测试（`scripts/claude/hooks/register.test.ts`）需要支持 `claude plugin test` 的 Claude Code；终端里的 `claude` 版本较旧时，用 `CLAUDE_CODE_BIN` 指向新版可执行文件后运行 `sh scripts/check.sh`，否则这项测试会自动跳过。
+修改 `claude/viewer/host.ts` 或 `host.html` 后，在该目录运行 `npm install` 与 `npm run build` 重新生成 `viewer.html`，再运行安装脚本。钩子的测试（`claude/hooks/register.test.ts`）需要支持 `claude plugin test` 的 Claude Code；终端里的 `claude` 版本较旧时，用 `CLAUDE_CODE_BIN` 指向新版可执行文件后运行 `sh scripts/check.sh`，否则这项测试会自动跳过。
 
 ## 注意事项
 
 - **不要同时在 Codex 与 Claude Code 中操作手机。** 两边共用同一台设备与同一个 WDA 服务，操作锁会让动作排队，一方重建会话也可能打断另一方正在进行的任务。两边同时打开实时屏幕时，各自建立一路画面连接。
 - **在本仓库目录内打开 Claude Code 时**，根目录的 `.mcp.json` 是 Codex 格式（使用 `${PLUGIN_ROOT}`），仓库中的 `.claude/settings.json` 已将其中的 `iphone_use` 停用，手机工具由插件提供。`claude mcp list` 仍会对该文件显示一条缺少 `PLUGIN_ROOT` 的诊断警告，可以忽略。
-- 匿名使用统计与 Codex 版本相同，事件的 `source` 记为 `claude_plugin_mcp`（Codex 为 `codex_plugin_mcp`），关闭方式见 [埋点与分析说明](ANALYTICS.md)。
+- 匿名使用统计与 Codex 版本相同，事件的 `source` 记为 `claude_plugin_mcp`（Codex 为 `codex_plugin_mcp`），关闭方式见 [埋点与分析说明](../ANALYTICS.md)。
 
 ## 卸载
 

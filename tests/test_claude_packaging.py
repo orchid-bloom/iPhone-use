@@ -49,7 +49,7 @@ class ClaudePackagingTests(unittest.TestCase):
         self.assertFalse(any('${PLUGIN_ROOT}' in (self.plugin / name).read_text() for name in files if name.endswith('.json')))
         self.assertFalse(any(name.startswith(('tests/', '.github/', 'docs/', 'evals/')) for name in files))
         self.assertFalse(any(name.startswith('viewer/') and name.endswith(('.ts', '.mjs', '.json')) for name in files))
-        for name in ('server/iphone_use.py', 'scripts/phone.py', 'tooling/forward.mjs', 'assets/phone-screen.html', 'README.claude.md'):
+        for name in ('server/iphone_use.py', 'scripts/phone.py', 'tooling/forward.mjs', 'assets/phone-screen.html', 'claude/README.md'):
             self.assertIn(name, files)
 
     def test_shared_skills_and_claude_supplement_are_packaged(self):
@@ -62,7 +62,7 @@ class ClaudePackagingTests(unittest.TestCase):
             self.assertEqual((self.plugin / 'skills' / skill / 'SKILL.md').read_bytes(), (ROOT / 'skills' / skill / 'SKILL.md').read_bytes())
 
     def test_document_links_resolve_inside_plugin(self):
-        for document in list((self.plugin / 'skills').rglob('*.md')) + [self.plugin / 'README.claude.md']:
+        for document in list((self.plugin / 'skills').rglob('*.md')) + [self.plugin / 'claude/README.md']:
             for target in re.findall(r'\]\(([^)]+)\)', document.read_text()):
                 if '://' in target or target.startswith('#'):
                     continue
@@ -84,11 +84,11 @@ class ClaudePackagingTests(unittest.TestCase):
         self.assertEqual(len(replies[1]['result']['tools']), 19)
 
     def test_viewer_dependencies_keep_the_codex_source_package_buildable(self):
-        # package.py 把 scripts/ 整体打进源码包并拒绝符号链接；viewer 的 .npmrc 关闭 bin 链接。
-        self.assertIn('bin-links=false', (ROOT / 'scripts/claude/viewer/.npmrc').read_text())
-        self.assertEqual([path for path in (ROOT / 'scripts').rglob('*') if path.is_symlink()], [])
+        # package.py 把 claude/ 整体打进源码包并拒绝符号链接；viewer 的 .npmrc 关闭 bin 链接。
+        self.assertIn('bin-links=false', (ROOT / 'claude/viewer/.npmrc').read_text())
+        self.assertEqual([path for path in (ROOT / 'claude').rglob('*') if path.is_symlink()], [])
         entries = [rel.as_posix() for _, rel in claude_packaging.load_packaging().package_files(source_package=True)]
-        self.assertIn('scripts/claude/viewer/viewer.html', entries)
+        self.assertIn('claude/viewer/viewer.html', entries)
         self.assertFalse(any('node_modules' in name for name in entries))
 
     def test_screen_viewer_runs_from_the_plugin_layout(self):
@@ -124,7 +124,7 @@ class ClaudePackagingTests(unittest.TestCase):
             harness = Path(scratch)
             shutil.copytree(self.plugin / 'hooks', harness / 'hooks')
             (harness / 'tests').mkdir()
-            shutil.copy2(ROOT / 'scripts/claude/hooks/register.test.ts', harness / 'tests')
+            shutil.copy2(ROOT / 'claude/hooks/register.test.ts', harness / 'tests')
             (harness / '.claude-plugin').mkdir()
             (harness / '.claude-plugin/plugin.json').write_text(json.dumps({'name': 'iphone-use', 'version': '0.0.0'}))
             tested = subprocess.run([binary, 'plugin', 'test', '.'], cwd=harness, capture_output=True, text=True, timeout=180)
