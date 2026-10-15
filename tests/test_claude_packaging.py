@@ -29,9 +29,10 @@ class ClaudePackagingTests(unittest.TestCase):
         marketplace = json.loads((self.stage / '.claude-plugin/marketplace.json').read_text())
         self.assertEqual(marketplace['name'], 'iphone-use-local')
         self.assertTrue(marketplace['owner']['name'])
-        [entry] = marketplace['plugins']
-        self.assertEqual((entry['name'], entry['source']), ('iphone-use', './iphone-use'))
-        self.assertTrue((self.stage / entry['source'] / '.claude-plugin/plugin.json').is_file())
+        self.assertEqual([(entry['name'], entry['source']) for entry in marketplace['plugins']],
+                         [('iphone-use', './iphone-use'), ('android-use', './android-use')])
+        for entry in marketplace['plugins']:
+            self.assertTrue((self.stage / entry['source'] / '.claude-plugin/plugin.json').is_file())
 
     def test_manifest_uses_claude_plugin_root_and_shared_version(self):
         manifest = json.loads((self.plugin / '.claude-plugin/plugin.json').read_text())
@@ -145,8 +146,40 @@ class ClaudePackagingTests(unittest.TestCase):
                 claude_packaging.build(foreign)
             self.assertEqual((foreign / 'keep.txt').read_text(), 'keep')
 
+    def test_android_plugin_uses_its_launcher_skills_and_android_widget(self):
+        android = self.stage / 'android-use'
+        manifest = json.loads((android / '.claude-plugin/plugin.json').read_text())
+        version = json.loads((ROOT / 'android/plugin.json').read_text())['version']
+        self.assertEqual((manifest['name'], manifest['version']), ('android-use', version))
+        self.assertEqual(manifest['mcpServers'], {'android_use': {'command': 'sh', 'args': ['${CLAUDE_PLUGIN_ROOT}/scripts/android_mcp.sh']}})
+        files = {path.relative_to(android).as_posix() for path in android.rglob('*') if path.is_file()}
+        for name in claude_packaging.ANDROID_CODEX_ONLY:
+            self.assertFalse(any(item == name or item.startswith(name + '/') for item in files), name)
+        self.assertFalse(any(name.startswith('server/') and name[len('server/'):] in ('iphone_use.py', 'wda_setup.py') for name in files))
+        for name in ('scripts/android_mcp.sh', 'server/android_use.py', 'viewer/screen_viewer.py', 'viewer/viewer.html'):
+            self.assertIn(name, files)
+        for skill in ('android-use', 'android-use-setup', 'android-use-claude'):
+            self.assertRegex((android / 'skills' / skill / 'SKILL.md').read_text(), r'(?m)^name: ' + skill + r'$')
+        self.assertIn('data-platform="android"', (android / 'assets/phone-screen.html').read_text())
+
+    def test_android_viewer_detects_its_platform_from_the_plugin_layout(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            environment = {**os.environ, 'IPHONE_USE_ANALYTICS': '0'}
+            command = [sys.executable, str(self.stage / 'android-use/viewer/screen_viewer.py'), '--state-dir', scratch]
+            started = json.loads(subprocess.run(command[:2] + ['start'] + command[2:], capture_output=True, text=True,
+                                                timeout=30, check=True, env=environment).stdout)
+            try:
+                instance = json.loads((Path(scratch) / 'claude-viewer.json').read_text())
+                self.assertEqual((instance['platform'], instance['pid']), ('android', started['pid']))
+            finally:
+                subprocess.run(command[:2] + ['stop'] + command[2:], capture_output=True, timeout=30, env=environment)
+            # Android 安装包里没有 iPhone 服务端。
+            refused = subprocess.run(command[:2] + ['status', '--platform', 'iphone'] + command[2:], capture_output=True, text=True, timeout=30, env=environment)
+            self.assertNotEqual(refused.returncode, 0)
+
     def test_install_script_is_valid_shell(self):
-        subprocess.run(['sh', '-n', str(ROOT / 'scripts/install_claude.sh')], check=True)
+        for script in ('install_claude.sh', 'install_claude_android.sh'):
+            subprocess.run(['sh', '-n', str(ROOT / 'scripts' / script)], check=True)
 
 
 if __name__ == '__main__':

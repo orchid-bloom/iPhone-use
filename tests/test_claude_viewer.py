@@ -155,6 +155,33 @@ class ViewerLifecycleTests(unittest.TestCase):
                 run_viewer(state_dir, 'stop')
 
 
+class AndroidViewerTests(unittest.TestCase):
+    def test_android_platform_serves_the_android_widget_and_runtime(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            state_dir = Path(scratch)
+            started = run_viewer(state_dir, 'start', '--platform', 'android')
+            try:
+                parts = urlsplit(started['url'])
+                token = parts.query.removeprefix('token=')
+                connection = http.client.HTTPConnection('127.0.0.1', parts.port, timeout=10)
+                connection.request('GET', '/?' + parts.query)
+                self.assertIn(b'<title>Android', connection.getresponse().read())
+                connection.request('GET', '/widget', headers={'X-Viewer-Token': token})
+                widget = connection.getresponse().read()
+                self.assertIn(b'data-platform="android"', widget)
+                self.assertNotIn(b'iPhone', widget)
+                body = json.dumps({'name': 'pua_screen_frame', 'arguments': {'after_seq': 0, 'last_event_id': 0}})
+                connection.request('POST', '/tool', body, {'X-Viewer-Token': token, 'Origin': f'http://127.0.0.1:{parts.port}',
+                                                          'Content-Type': 'application/json'})
+                result = json.loads(connection.getresponse().read())
+                connection.close()
+                self.assertFalse(result['isError'])
+                self.assertIn('frame_available', result['structuredContent'])
+                self.assertEqual(json.loads((state_dir / 'claude-viewer.json').read_text())['platform'], 'android')
+            finally:
+                run_viewer(state_dir, 'stop', '--platform', 'android')
+
+
 class ViewerBuildTests(unittest.TestCase):
     def test_built_page_matches_the_host_template(self):
         template = (VIEWER / 'host.html').read_text()

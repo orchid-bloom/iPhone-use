@@ -141,6 +141,8 @@ sh scripts/install_claude.sh
 
 脚本在用户范围注册本地 marketplace `iphone-use-local` 并安装 `iphone-use@iphone-use-local`。安装后新开 Claude Code 会话或执行 `/reload-plugins`。请保留暂存目录 `dist/claude/`，更新源码后重新运行安装脚本；Codex 与 Claude 共用同一台设备，应避免同时操作。
 
+Android 手机可运行 `sh scripts/install_claude_android.sh`，安装同一 marketplace 中的 `android-use` 插件。
+
 权限设置、手动预览命令、认证接管、更新和卸载方式，见 [Claude Code 使用说明](claude/README.md)。
 
 ## Android 支持（实验版）

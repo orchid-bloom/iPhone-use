@@ -79,11 +79,26 @@ python3 dist/claude/iphone-use/viewer/screen_viewer.py stop
 - **在本仓库目录内打开 Claude Code 时**，根目录的 `.mcp.json` 是 Codex 格式（使用 `${PLUGIN_ROOT}`），仓库中的 `.claude/settings.json` 已将其中的 `iphone_use` 停用，手机工具由插件提供。`claude mcp list` 仍会对该文件显示一条缺少 `PLUGIN_ROOT` 的诊断警告，可以忽略。
 - 匿名使用统计与 Codex 版本相同，事件的 `source` 记为 `claude_plugin_mcp`（Codex 为 `codex_plugin_mcp`），关闭方式见 [埋点与分析说明](../ANALYTICS.md)。
 
+## Android Use
+
+同一个本地 marketplace 还提供 `android-use` 插件，通过 USB（或已配对的无线）ADB 操作 Android 手机，与 Codex 版 Android Use 共用服务端、技能和依赖环境。需要已开启 USB 调试的 Android 手机。
+
+```sh
+sh scripts/install_claude_android.sh
+```
+
+脚本把依赖装进 `~/.local/share/android-use/venv`（与 Codex 版 `scripts/install_android.sh` 相同；本机没有 adb 时在 macOS 上自动下载官方 Platform Tools），再安装 `android-use@iphone-use-local`。安装后新开会话或执行 `/reload-plugins`，输入「配置我的 Android 手机并验证连接。」即可开始。
+
+- **工具名**：`mcp__plugin_android-use_android_use__pua_*`。与 iPhone Use 同时安装时，两组工具按前缀区分。建议的权限规则见安装脚本最后的输出（把上文规则里的 `iphone-use_iphone_use` 换成 `android-use_android_use`）。
+- **实时手机屏幕**：同一个查看服务的 Android 模式，画面使用 Android 样式，在右侧浏览器面板中打开；也可以手动运行 `python3 dist/claude/android-use/viewer/screen_viewer.py start`。运行数据在 `~/.local/share/android-use/state`，与 iPhone 互不影响。READY 后由补充技能 `android-use-claude` 提示模型打开画面，没有自动打开钩子。
+- Android 服务端不发送匿名使用统计。
+
 ## 卸载
 
 ```sh
 claude plugin uninstall iphone-use@iphone-use-local
+claude plugin uninstall android-use@iphone-use-local
 claude plugin marketplace remove iphone-use-local
 ```
 
-卸载不会删除 `~/.local/share/iphone-use/` 中的设备配置与构建，Codex 版本仍可继续使用。
+卸载不会删除 `~/.local/share/iphone-use/` 与 `~/.local/share/android-use/` 中的设备配置、构建和依赖环境，Codex 版本仍可继续使用。

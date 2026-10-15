@@ -1,0 +1,17 @@
+{
+  "name": "android-use",
+  "description": "让 Claude Code 通过 ADB 和 UI Automator 操作真实 Android，支持中文输入、批处理、列表采集与实时屏幕。",
+  "author": {
+    "name": "ZHONG XIN"
+  },
+  "homepage": "https://github.com/zhongerxin/iPhone-use",
+  "repository": "https://github.com/zhongerxin/iPhone-use",
+  "license": "MIT",
+  "keywords": ["android", "adb", "uiautomator2", "automation", "mcp"],
+  "mcpServers": {
+    "android_use": {
+      "command": "sh",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/android_mcp.sh"]
+    }
+  }
+}

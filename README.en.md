@@ -156,6 +156,8 @@ sh scripts/install_claude.sh
 
 The script registers the local marketplace `iphone-use-local` at user scope and installs `iphone-use@iphone-use-local`. Start a new Claude Code session or run `/reload-plugins` afterward. Keep the staging directory `dist/claude/` and rerun the installer after updating the source. Codex and Claude share the same phone; avoid operating it from both at once.
 
+For Android phones, run `sh scripts/install_claude_android.sh` to install the `android-use` plugin from the same marketplace.
+
 For permissions, manual preview commands, authentication handoff, updates, and uninstalling, see [Using iPhone Use in Claude Code](claude/README.md) (Chinese).
 
 ## Requirements

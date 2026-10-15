@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Claude Code 手机屏幕查看服务：在 127.0.0.1 上托管 Codex 同款屏幕 widget。
+"""Claude Code 手机屏幕查看服务：在 127.0.0.1 上托管 Codex 同款屏幕 widget（iPhone 或 Android）。
 
 内置浏览器面板打开 start 返回的地址；widget 的工具调用经 POST /tool 交给与 MCP 服务
 相同的 Runtime，共享运行目录中的预览状态、动作事件与跨进程操作锁。只放行 widget 使用的
@@ -23,20 +23,56 @@ import urllib.request
 HERE = Path(__file__).resolve().parent
 
 
+SERVERS = {'iphone': 'iphone_use.py', 'android': 'android_use.py'}
+
+
 def plugin_root():
     """仓库内为 claude/viewer，安装包内为 <插件根目录>/viewer。"""
     for candidate in HERE.parents:
-        if (candidate / 'server' / 'iphone_use.py').is_file():
+        if any((candidate / 'server' / name).is_file() for name in SERVERS.values()):
             return candidate
-    raise SystemExit('iPhone Use server directory not found.')
+    raise SystemExit('Phone Use server directory not found.')
 
 
 ROOT = plugin_root()
-# 查看服务只在 Claude Code 中使用：匿名统计的来源记为 Claude，后台 serve 子进程继承此变量。
-os.environ.setdefault('IPHONE_USE_HOST', 'claude')
 sys.path.insert(0, str(ROOT / 'server'))
-from iphone_use import Runtime, tool_result  # noqa: E402
-from wda_setup import state_directory  # noqa: E402
+
+
+def default_platform():
+    """安装包只含一种服务端；仓库内两者都有时默认 iPhone。"""
+    return 'iphone' if (ROOT / 'server' / SERVERS['iphone']).is_file() else 'android'
+
+
+def android_home():
+    return Path(os.environ.get('ANDROID_USE_HOME') or Path.home() / '.local/share/android-use').expanduser()
+
+
+def default_state_dir(platform):
+    """与对应 MCP 服务一致：Android 同 scripts/android_mcp.sh，iPhone 同 wda_setup.state_directory。"""
+    if platform == 'android':
+        return Path(os.environ.get('ANDROID_USE_STATE_DIR') or android_home() / 'state').expanduser()
+    from wda_setup import state_directory
+    return state_directory()
+
+
+def serve_python(platform):
+    """Android 依赖装在独立 venv 中，存在时后台服务用它运行；否则沿用当前解释器。"""
+    venv = android_home() / 'venv/bin/python'
+    if platform == 'android' and os.access(venv, os.X_OK):
+        return str(venv)
+    return sys.executable
+
+
+def load_platform(platform):
+    """延迟导入：Android 安装包中没有 iPhone 服务端，反之亦然。返回 Runtime、tool_result 与 widget 转换。"""
+    if platform == 'android':
+        import android_use
+        from android_widget import android_html
+        return android_use.Runtime, android_use.tool_result, android_html
+    # 查看服务只在 Claude Code 中使用：匿名统计的来源记为 Claude，后台 serve 子进程继承此变量。
+    os.environ.setdefault('IPHONE_USE_HOST', 'claude')
+    import iphone_use
+    return iphone_use.Runtime, iphone_use.tool_result, lambda html: html
 
 VERSION = '0.1.0'
 WIDGET_TOOLS = frozenset({'pua_screen', 'pua_screen_frame', 'pua_screen_action'})
@@ -96,14 +132,18 @@ def healthy(instance, timeout=2):
 class ViewerServer(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, runtime, token, idle_seconds):
+    def __init__(self, platform, runtime, tool_result, widget, token, idle_seconds):
         super().__init__(('127.0.0.1', 0), ViewerHandler)
         self.runtime = runtime
+        self.tool_result = tool_result
         self.token = token
         self.idle_seconds = idle_seconds
         self.last_request = time.monotonic()
-        self.host_html = host_page().read_bytes()
-        self.widget_html = (ROOT / 'assets' / 'phone-screen.html').read_bytes()
+        host = host_page().read_text()
+        if platform == 'android':
+            host = host.replace('<title>iPhone 屏幕</title>', '<title>Android 屏幕</title>').replace('iPhone 实时屏幕', 'Android 实时屏幕')
+        self.host_html = host.encode()
+        self.widget_html = widget((ROOT / 'assets' / 'phone-screen.html').read_text()).encode()
 
     @property
     def port(self):
@@ -180,14 +220,15 @@ class ViewerHandler(BaseHTTPRequestHandler):
         arguments = request.get('arguments', {}) if isinstance(request, dict) else None
         if name not in WIDGET_TOOLS or not isinstance(arguments, dict):
             return self._reject()
-        result = tool_result(self.server.runtime, {'name': name, 'arguments': arguments})
+        result = self.server.tool_result(self.server.runtime, {'name': name, 'arguments': arguments})
         self._send(200, json.dumps(result, ensure_ascii=False, allow_nan=False).encode())
 
 
-def serve(state_dir, idle_seconds):
-    runtime = Runtime(str(state_dir))
-    server = ViewerServer(runtime, secrets.token_urlsafe(24), idle_seconds)
-    instance = {'pid': os.getpid(), 'port': server.port, 'token': server.token, 'version': VERSION,
+def serve(state_dir, idle_seconds, platform):
+    runtime_class, tool_result, widget = load_platform(platform)
+    runtime = runtime_class(str(state_dir))
+    server = ViewerServer(platform, runtime, tool_result, widget, secrets.token_urlsafe(24), idle_seconds)
+    instance = {'pid': os.getpid(), 'port': server.port, 'token': server.token, 'version': VERSION, 'platform': platform,
                 'url': f'http://127.0.0.1:{server.port}/?token={server.token}'}
     stopping = threading.Event()
 
@@ -216,12 +257,13 @@ def serve(state_dir, idle_seconds):
     return 0
 
 
-def start(state_dir, idle_seconds):
+def start(state_dir, idle_seconds, platform):
     current = read_instance(state_dir)
     if healthy(current):
         return {'url': current['url'], 'pid': current['pid'], 'reused': True}
     instance_path(state_dir).unlink(missing_ok=True)
-    command = [sys.executable, str(Path(__file__).resolve()), 'serve', '--state-dir', str(state_dir), '--idle-seconds', str(idle_seconds)]
+    command = [serve_python(platform), str(Path(__file__).resolve()), 'serve', '--state-dir', str(state_dir),
+               '--idle-seconds', str(idle_seconds), '--platform', platform]
     child = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              start_new_session=True, close_fds=True)
     deadline = time.monotonic() + START_TIMEOUT_SECONDS
@@ -259,14 +301,18 @@ def stop_instance(state_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('command', nargs='?', default='start', choices=['start', 'status', 'stop', 'serve'])
-    parser.add_argument('--state-dir', help='与 MCP 服务相同的运行目录；默认同 IPHONE_USE_STATE_DIR')
+    parser.add_argument('--platform', choices=sorted(SERVERS), help='iphone 或 android；默认按插件中的服务端判断')
+    parser.add_argument('--state-dir', help='与 MCP 服务相同的运行目录；默认同对应插件的运行目录')
     parser.add_argument('--idle-seconds', type=int, default=IDLE_SECONDS, help='无请求多久后自动退出')
     args = parser.parse_args()
-    state_dir = Path(args.state_dir).expanduser() if args.state_dir else state_directory()
+    platform = args.platform or default_platform()
+    if not (ROOT / 'server' / SERVERS[platform]).is_file():
+        raise SystemExit(f'This plugin has no {platform} server.')
+    state_dir = Path(args.state_dir).expanduser() if args.state_dir else default_state_dir(platform)
     state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     if args.command == 'serve':
-        return serve(state_dir, max(args.idle_seconds, 1))
-    handlers = {'start': lambda: start(state_dir, max(args.idle_seconds, 1)), 'status': lambda: status(state_dir),
+        return serve(state_dir, max(args.idle_seconds, 1), platform)
+    handlers = {'start': lambda: start(state_dir, max(args.idle_seconds, 1), platform), 'status': lambda: status(state_dir),
                 'stop': lambda: stop_instance(state_dir)}
     print(json.dumps(handlers[args.command](), ensure_ascii=False))
     return 0

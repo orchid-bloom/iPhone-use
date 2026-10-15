@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""暂存 Claude Code 本地 marketplace，复用 Codex 安装包的文件清单，不改动 dist/iphone-use。"""
+"""暂存 Claude Code 本地 marketplace（iPhone Use 与 Android Use），复用 Codex 安装包的文件清单，不改动其 dist 目录。"""
 import argparse
 import importlib.util
 import json
@@ -18,13 +18,21 @@ CODEX_ONLY={'plugin.json','mcp.json','.mcp.json','.codex-plugin/plugin.json','.a
             'scripts/install.sh','scripts/register_mcp.py','scripts/package.py'}
 VIEWER_FILES=('screen_viewer.py','viewer.html')
 HOOK_FILES=('hooks.json','register.ts')
+ANDROID='android-use'
+ANDROID_TEMPLATE=TEMPLATE/'android'
+# package_android.stage_plugin 暂存的 Codex 清单与带 ${PLUGIN_ROOT} 的 MCP 配置。
+ANDROID_CODEX_ONLY=('plugin.json','.codex-plugin','mcp.json','.mcp.json')
 
 
-def load_packaging():
-    spec=importlib.util.spec_from_file_location('iphone_use_packaging',ROOT/'scripts'/'package.py')
+def load_script(name,filename):
+    spec=importlib.util.spec_from_file_location(name,ROOT/'scripts'/filename)
     module=importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_packaging():
+    return load_script('iphone_use_packaging','package.py')
 
 
 def plugin_files(packaging):
@@ -44,6 +52,29 @@ def write_json(path,data):
     path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
 
 
+def copy_file(source,target):
+    if source.is_symlink():raise SystemExit('Refusing package symlink: '+str(source))
+    target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
+
+
+def stage_android(plugin_root):
+    """复用 package_android.stage_plugin（共享运行时白名单与 Android 样式 widget），再换成 Claude 清单。"""
+    android=load_script('android_use_packaging','package_android.py')
+    manifest=android.validate()
+    template=json.loads((ANDROID_TEMPLATE/'plugin.json').read_text())
+    assert template['name']==manifest['name']==ANDROID and 'version' not in template
+    android.stage_plugin(plugin_root)
+    for name in ANDROID_CODEX_ONLY:
+        target=plugin_root/name
+        if target.is_dir():shutil.rmtree(target)
+        else:target.unlink(missing_ok=True)
+    for source in sorted((ANDROID_TEMPLATE/'skills').rglob('*')):
+        if source.is_file() and source.name!='.DS_Store':copy_file(source,plugin_root/'skills'/source.relative_to(ANDROID_TEMPLATE/'skills'))
+    for name in VIEWER_FILES:copy_file(TEMPLATE/'viewer'/name,plugin_root/'viewer'/name)
+    write_json(plugin_root/'.claude-plugin'/'plugin.json',{'name':ANDROID,'version':manifest['version'],**{key:value for key,value in template.items() if key!='name'}})
+    return template
+
+
 def build(stage=DEFAULT_STAGE):
     packaging=load_packaging()
     manifest=packaging.validate()
@@ -56,13 +87,13 @@ def build(stage=DEFAULT_STAGE):
     building=stage.with_name(stage.name+'.building')
     if building.exists():shutil.rmtree(building)
     plugin_root=building/PLUGIN
-    for source,rel in plugin_files(packaging):
-        if source.is_symlink():raise SystemExit('Refusing package symlink: '+str(source))
-        target=plugin_root/rel;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
+    for source,rel in plugin_files(packaging):copy_file(source,plugin_root/rel)
     write_json(plugin_root/'.claude-plugin'/'plugin.json',{'name':PLUGIN,'version':manifest['version'],**{key:value for key,value in template.items() if key!='name'}})
+    android=stage_android(building/ANDROID)
     write_json(building/'.claude-plugin'/'marketplace.json',{
-        'name':MARKETPLACE,'owner':template['author'],
-        'plugins':[{'name':PLUGIN,'source':'./'+PLUGIN,'description':template['description'],'category':'productivity'}]})
+        'name':MARKETPLACE,'owner':template['author'],'description':'iPhone Use 与 Android Use 的 Claude Code 本地插件',
+        'plugins':[{'name':name,'source':'./'+name,'description':manifest_template['description'],'category':'productivity'}
+                   for name,manifest_template in ((PLUGIN,template),(ANDROID,android))]})
     retired=stage.with_name(stage.name+'.retired')
     if retired.exists():shutil.rmtree(retired)
     if stage.exists():stage.rename(retired)
