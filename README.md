@@ -4,13 +4,24 @@
 
 ![iPhone Use 在 Codex 中操作真实 iPhone 并实时展示手机屏幕](assets/iphone-use-demo.png)
 
-让 Codex 通过 USB 操作你的真实 iPhone。用自然语言描述任务，Codex 就能打开 App、读取页面、点击、滚动、输入文字、整理列表，并在侧边栏展示手机屏幕。
+让 Codex、Claude Code、WorkBuddy 或豆包工作通过 USB 操作你的真实 iPhone。用自然语言描述任务，助手就能打开 App、读取页面、点击、滚动、输入文字、整理列表，并展示手机屏幕。
 
 iPhone Use 使用 [WebDriverAgent](https://github.com/appium/WebDriverAgent)（WDA）与 iPhone 通信，包含本地 MCP 服务、安装与使用技能，以及实时屏幕 widget。它优先复用现有连接与构建；控件定位失败时，指导模型查看截图并尝试坐标点击。
 
 插件默认向独立的 PostHog 项目发送匿名使用统计，包括启动、工具调用、连接状态、耗时和错误类别。使用随机安装标识，不上传手机画面、输入内容或设备标识。设置 `IPHONE_USE_ANALYTICS=0` 或 `DO_NOT_TRACK=1` 并重启 MCP 服务可关闭。详见 [埋点与分析说明](ANALYTICS.md)。
 
-**使用前，需要先在你自己的 iPhone 上安装、签名并启动 WDA Runner。** WDA 是运行在手机上的执行服务；下面的提示词和 setup 流程可以让 Codex 协助完成首次安装，已有健康的 WDA 可直接复用。
+**使用前，需要先在你自己的 iPhone 上安装、签名并启动 WDA Runner。** WDA 是运行在手机上的执行服务；下面的提示词和 setup 流程可以让所用宿主的助手协助完成首次安装，已有健康的 WDA 可直接复用。
+
+## 最近更新
+
+2026-10-09 至 2026-10-13，完整记录见 [更新记录](CHANGELOG.md)。
+
+- **预览直接操作**：支持点击画面、鼠标拖动和触控板双指滚动。
+- **微信点击优化**：已知导航目标直接看图点击，通讯录和会话列表按需轻量读取。
+- **AirDrop 文件传输**：使用技能新增传输指引，将手机图片、视频和文档传回 Mac。
+- **页面读取优化**：精简控件树，默认最多返回 200 个节点，支持按需限制快照。
+- **连接恢复改进**：完善超时与断线指引，自动恢复临时快照设置。
+- **长文本续传保护**：续传绑定原输入框，切换 App 或焦点后停止，避免误写。
 
 ## 用一段提示词让 Codex 安装
 
@@ -36,7 +47,101 @@ https://github.com/zhongerxin/iPhone-use
 
 安装插件后，当前聊天可能需要重新连接才能加载工具，流程可在重连后继续。Apple 账号登录、设备信任、开发者模式及手机解锁仍需本人在系统界面完成。
 
-仓库目前为私有，需要有 GitHub 访问权限，或者使用已取得的源代码包。
+也可以使用已取得的源代码包，在解压目录运行对应宿主的安装脚本。
+
+## 在 WorkBuddy 和豆包工作中安装
+
+两者都支持通过 USB 操作真实 iPhone，并在侧边栏显示实时画面；共用本机的设备配置、WDA 构建和操作锁，已配置过的手机优先复用。依赖仍是 macOS、完整 Xcode、Python、Node.js / npm 和 USB iPhone，安装这两个适配版无需 Codex CLI。适配版默认关闭匿名使用统计。
+
+| 宿主 | 在源码目录运行 | 安装后的接入 |
+| --- | --- | --- |
+| [WorkBuddy](https://github.com/zhongerxin/iPhone-use/blob/main/workbuddy/README.md) | `python3 workbuddy/install.py` | 在「连接器管理」信任 `iphone_use`，新开会话 |
+| [豆包工作](https://github.com/zhongerxin/iPhone-use/blob/main/doubao/README.md) | `python3 doubao/install.py` | 按安装器输出新建 STDIO 连接器，上传两个技能，新开「本地电脑」任务 |
+
+将对应提示词发给本机的 WorkBuddy 或豆包工作。助手可执行本地安装；宿主界面的接入步骤若无法自动操作，会说明需要你完成的具体步骤。首次签名仍使用你自己的 Apple 账号和开发团队。
+
+### 发给 WorkBuddy 的提示词
+
+```text
+请在这台 Mac 上安装 iPhone Use，让 WorkBuddy 通过 USB 操作我的真实 iPhone：
+https://github.com/zhongerxin/iPhone-use
+
+先读取 README.md、workbuddy/README.md 和安装脚本，检查 Python、Node.js、npm、
+完整 Xcode 和 USB iPhone。克隆或复用本地源码，保留已有改动，
+在源码目录运行 python3 workbuddy/install.py；不要运行 Codex 安装脚本。
+在 WorkBuddy「连接器管理」里信任并启用 iphone_use，然后新开会话加载工具和技能。
+如果这些界面步骤需要我操作，给出具体位置，等我完成后继续。
+
+工具可用后读取 iphone-use-setup，先查询 setup status，复用已有配置、健康 WDA
+或正在运行的启动任务；首次配置使用我自己的设备和 Apple 开发团队完成签名与启动。
+确认 pua_ready 返回 ready=true 后调用一次 pua_screen()，在侧边栏显示实时手机画面，
+再在 iPhone 计算器中验证 12×34=408。Apple 登录、信任、开发者模式或解锁
+需要我接管时，说明具体步骤并等我完成；不要照搬作者的设备标识或签名信息。
+```
+
+### 发给豆包工作的提示词
+
+```text
+请在这台 Mac 上安装 iPhone Use，让豆包工作通过 USB 操作我的真实 iPhone：
+https://github.com/zhongerxin/iPhone-use
+
+在「本地电脑」任务中先读取 README.md、doubao/README.md 和安装脚本，
+检查 Python、Node.js、npm、完整 Xcode 和 USB iPhone。克隆或复用本地源码，
+保留已有改动，在源码目录运行 python3 doubao/install.py；不要运行 Codex 安装脚本。
+按安装器输出，在「插件 · 技能 · 伙伴」中新建名为 iphone_use 的 STDIO 连接器，
+命令和参数使用输出的绝对路径，并分别上传安装目录下的 iphone-use、iphone-use-setup
+两个技能文件夹。启用连接器和技能，再新开「本地电脑」任务；已有连接器更新后关闭再打开。
+如果这些界面步骤需要我操作，给出具体位置和路径，等我完成后继续。
+
+工具可用后读取 iphone-use-setup，先查询 setup status，复用已有配置、健康 WDA
+或正在运行的启动任务；首次配置使用我自己的设备和 Apple 开发团队完成签名与启动。
+确认 pua_ready 返回 ready=true 后调用一次 pua_screen()，在右侧 MCP App 显示实时手机画面，
+再在 iPhone 计算器中验证 12×34=408。Apple 登录、信任、开发者模式或解锁
+需要我接管时，说明具体步骤并等我完成；不要照搬作者的设备标识或签名信息。
+```
+
+如果工具没有加载，先确认连接器已启用，再新开会话 / 本地电脑任务。两个宿主同时使用同一部手机时，按共享操作锁的提示等待，避免同时操作。详细安装、更新和排查步骤见上表链接。
+
+## 在 Claude Code 中安装
+
+Claude Code 版共用现有 MCP 服务、技能、设备配置、WDA 构建和操作锁，已配置过的手机优先复用。依赖与下表相同，另需已登录且支持插件的 Claude Code CLI；无需 Codex CLI。桌面端在 **Code 标签页的本地（Local）会话**中使用，实时画面显示在右侧浏览器面板；终端 CLI 可在本机浏览器中查看。
+
+### 发给 Claude Code 的提示词
+
+```text
+请在这台 Mac 上安装 iPhone Use，让 Claude Code 通过 USB 操作我的真实 iPhone：
+https://github.com/zhongerxin/iPhone-use
+
+先读取 README.md、claude/README.md 和 scripts/install_claude.sh，检查已登录的
+Claude Code CLI、Python、Node.js、npm、完整 Xcode 和 USB iPhone。
+克隆或复用本地源码，保留已有改动，在源码根目录运行 sh scripts/install_claude.sh。
+用 claude plugin list --json 确认 iphone-use@iphone-use-local 已安装。
+安装后新开 Claude Code 会话，或执行 /reload-plugins；如果当前会话无法加载新工具，
+说明需要我完成的步骤，等我完成后继续。桌面端使用 Code 标签页的本地（Local）会话。
+
+工具可用后读取 iphone-use-claude 和 iphone-use-setup，先查询 setup status，
+复用已有配置、健康 WDA 或正在运行的启动任务；首次配置使用我自己的设备、
+Apple 开发团队和可签名 bundle ID，获取固定版本 WDA、构建并启动。
+确认 pua_ready 返回 ready=true 后显示手机屏幕，再在 iPhone 计算器中验证 12×34=408。
+支持钩子的桌面端会自动打开或复用预览；收到自动打开提示时不要重复启动。
+未自动打开时按 iphone-use-claude 的指引启动查看服务，并打开返回的完整 url。
+浏览器面板被收起时提示我展开；终端 CLI 则把预览地址交给我在本机浏览器打开。
+
+Apple 登录、设备信任、开发者模式、密码或 Face ID 需要我接管时，
+说明具体步骤并等我完成；不要照搬作者的设备标识或签名信息。
+```
+
+### 手动安装
+
+在源码根目录运行：
+
+```sh
+sh scripts/install_claude.sh
+```
+
+脚本在用户范围注册本地 marketplace `iphone-use-local` 并安装 `iphone-use@iphone-use-local`。安装后新开 Claude Code 会话或执行 `/reload-plugins`。请保留暂存目录 `dist/claude/`，更新源码后重新运行安装脚本；Codex 与 Claude 共用同一台设备，应避免同时操作。
+
+权限设置、手动预览命令、认证接管、更新和卸载方式，见 [Claude Code 使用说明](claude/README.md)。
 
 ## Android 支持（实验版）
 
@@ -46,7 +151,7 @@ https://github.com/zhongerxin/iPhone-use
 
 | 依赖 | 用途 |
 | --- | --- |
-| macOS 与 Codex 桌面端 / CLI | 安装本地插件、运行 MCP 服务与屏幕侧边栏 |
+| macOS 与 Codex、Claude Code、WorkBuddy 或豆包工作 | 运行本地 MCP 服务与手机预览；Codex / Claude 版安装另需各自的 CLI |
 | 完整 Xcode，已完成首次启动配置 | 编译、签名、部署和运行 WDA；仅 Command Line Tools 不够 |
 | 可在 Xcode 中使用的 Apple 账号和开发团队 | 签名手机端 WDA Runner |
 | USB 连接的真实 iPhone | 信任此 Mac，开启设备要求的开发者模式，安装与启动期间保持解锁 |
@@ -89,18 +194,6 @@ sh scripts/install.sh
 
 技能引导 Codex 完成诊断、设备发现、签名配置、获取 WDA、后台构建与启动。已配置过的设备会复用配置和构建，正常任务不需要每次重装。`pua_ready` 返回 `ready=true` 后才开始手机任务。
 
-## 在 Claude Code 中使用
-
-iPhone Use 也可以作为 Claude Code 插件使用。两个版本共用同一个 MCP 服务、技能与本机运行数据，已在 Codex 中配置好的设备、签名与 WDA 构建可直接复用。依赖与上文相同，另需已登录的 Claude Code CLI。
-
-```sh
-sh scripts/install_claude.sh
-```
-
-脚本在用户范围注册本地 marketplace `iphone-use-local` 并安装 `iphone-use@iphone-use-local`，不会修改 Codex 的插件与 MCP 注册。安装后新开 Claude Code 会话，或在已有会话中执行 `/reload-plugins`，再用上面同样的 `iphone-use-setup` 提示词连接手机。
-
-建议的权限设置、实时手机屏幕、与 Codex 版本的差异及卸载方式，见 [在 Claude Code 中使用 iPhone Use](README.claude.md)。
-
 ## 可以做什么
 
 | 功能 | 示例 |
@@ -125,9 +218,9 @@ sh scripts/install_claude.sh
 读取这个列表，分段滚动并去重，说明已经覆盖的范围和还未确认的部分。
 ```
 
-输入与提交分开，工具默认不提交文字。模型需要核对关键页面、接收人、数量和最终结果。密码、验证码、Face ID 等认证交给用户完成，接管期间可以暂停预览。
+输入与提交分开，工具默认不提交文字。模型需要核对关键页面、接收人、数量和最终结果。密码、验证码、Face ID 等认证交给用户完成；等待解锁或认证接管时，widget 保留暂停前的画面，叠加黑色半透明遮罩、接管手势图标和「请在手机上接管操作」提示。恢复预览后自动移除遮罩。
 
-屏幕预览在同一聊天中复用已有 widget。底部提供刷新、主屏幕和截图按钮；无图像时保留黑色屏幕的 iPhone 外壳，屏幕内仅显示对应状态图标，顶部显示连接或暂停状态。预览供用户观看，模型定位仍以工具返回的实际图像或控件为依据。
+屏幕预览在同一聊天中复用已有 widget。支持直接点击实时画面、鼠标拖动和触控板双指滚动／翻页，底部提供刷新、主屏幕和截图按钮。外观按连接机型匹配：支持灵动岛的机型才显示灵动岛；其他已知圆角屏机型保留圆角和外壳；iPhone X 之前的机型、所有 iPhone SE 和未知机型仅显示无圆角、无外壳的矩形屏幕。无图像时屏幕内仅显示对应状态图标，顶部显示连接或暂停状态。预览供用户观看，模型定位仍以工具返回的实际图像或控件为依据。
 
 ## 技术亮点
 

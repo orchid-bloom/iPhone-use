@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VIEWER = ROOT / 'scripts/claude/viewer'
+VIEWER = ROOT / 'claude/viewer'
 SCRIPT = VIEWER / 'screen_viewer.py'
 
 

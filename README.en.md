@@ -4,13 +4,24 @@
 
 ![iPhone Use controlling a real iPhone in Codex with a live screen preview](assets/iphone-use-demo.png)
 
-Let Codex operate your real iPhone over USB. Describe a task in natural language: open apps, read screens, tap, scroll, enter text, collect lists, and watch the phone in a sidebar widget.
+Let Codex, Claude Code, WorkBuddy, or Doubao Work operate your real iPhone over USB. Describe a task in natural language: open apps, read screens, tap, scroll, enter text, collect lists, and watch the phone preview.
 
 The plugin connects to [WebDriverAgent](https://github.com/appium/WebDriverAgent) (WDA). It includes a local MCP server, setup and usage skills, and a live screen widget. It reuses healthy connections and existing builds; when element targeting fails, it guides the model to inspect a screenshot and try coordinates.
 
 The plugin sends anonymous usage statistics to its own PostHog project by default: starts, tool calls, connection results, durations and error categories. It uses a random installation ID and never uploads phone images, input text or device identifiers. Set `IPHONE_USE_ANALYTICS=0` or `DO_NOT_TRACK=1` and restart the MCP server to disable it. See [analytics documentation](ANALYTICS.md).
 
-**Before using iPhone Use, install, sign, and start WDA Runner on your own iPhone.** WDA is the on-device execution service. The prompt and setup workflow below can help Codex complete the initial installation; a healthy existing WDA can be reused.
+**Before using iPhone Use, install, sign, and start WDA Runner on your own iPhone.** WDA is the on-device execution service. The prompts and setup workflow below can help your host assistant complete the initial installation; a healthy existing WDA can be reused.
+
+## Recent updates
+
+October 9–13, 2026. See the [changelog](CHANGELOG.md) for details.
+
+- **Direct preview control**: tap the image, drag with the mouse, or scroll with two fingers on a trackpad.
+- **WeChat tap improvements**: use screenshots to tap known navigation targets, with lighter reads for contacts and conversation lists.
+- **AirDrop file transfer**: new usage-skill guidance for sending phone photos, videos, and documents to your Mac.
+- **Screen reading improvements**: leaner trees, a 200-node default output limit, and optional snapshot limits for large lists.
+- **Connection recovery improvements**: clearer timeout and disconnect guidance, with automatic restoration of temporary snapshot settings.
+- **Safer long-text continuation**: input stays bound to the original field and stops when the app or focus changes.
 
 ## Ask Codex to install it
 
@@ -37,13 +48,121 @@ Developer Mode, or unlocking needs my input, explain the exact steps and wait
 for me to complete them before continuing.
 ```
 
-A reconnect may be required to load newly installed tools. Apple account login, device trust, Developer Mode, and unlocking must be completed by the device owner in the system UI. The repository is currently private; GitHub access or a source package is required.
+A reconnect may be required to load newly installed tools. Apple account login, device trust, Developer Mode, and unlocking must be completed by the device owner in the system UI. You can also extract a source package and run the installer for your host from its root.
+
+## Install in WorkBuddy or Doubao Work
+
+Both hosts can control a real iPhone over USB and show its live screen in a sidebar. They share local device configuration, WDA builds, and the operation lock, so an existing setup is reused. The requirements are macOS, full Xcode, Python, Node.js / npm, and a USB-connected iPhone; these adapters do not require Codex CLI. Anonymous usage statistics are disabled by default in both adapters.
+
+| Host | Run from the source directory | Connect after installation |
+| --- | --- | --- |
+| [WorkBuddy](https://github.com/zhongerxin/iPhone-use/blob/main/workbuddy/README.md) | `python3 workbuddy/install.py` | Trust `iphone_use` in Connector Management, then start a new chat |
+| [Doubao Work](https://github.com/zhongerxin/iPhone-use/blob/main/doubao/README.md) | `python3 doubao/install.py` | Add a STDIO connector using the installer output, upload both skills, then start a Local Computer task |
+
+Paste the matching prompt into the host running on your Mac. The assistant can perform the local installation and explain any host UI steps it cannot complete. First-time signing uses your own Apple account and development team.
+
+### Prompt for WorkBuddy
+
+```text
+Install iPhone Use on this Mac so WorkBuddy can operate my real iPhone over USB:
+https://github.com/zhongerxin/iPhone-use
+
+Read README.en.md, workbuddy/README.md, and the installer first. Check Python,
+Node.js, npm, full Xcode, and the USB iPhone. Clone or reuse a local checkout,
+preserve existing changes, and run python3 workbuddy/install.py from its root.
+Do not run the Codex installer. Trust and enable iphone_use in WorkBuddy's
+Connector Management, then start a new chat to load the tools and skills.
+If I need to complete a UI step, give its exact location and wait for me.
+
+Once tools are available, read iphone-use-setup and check setup status first.
+Reuse existing configuration, healthy WDA, or an active startup job. For initial
+setup, use my own device and Apple development team to sign and start WDA.
+After pua_ready returns ready=true, call pua_screen() once to show the live
+phone sidebar, then verify 12×34=408 in the iPhone Calculator.
+For Apple login, trust, Developer Mode, or unlocking, explain the steps and
+wait for me. Do not copy the author's device identifiers or signing settings.
+```
+
+### Prompt for Doubao Work
+
+```text
+Install iPhone Use on this Mac so Doubao Work can operate my real iPhone over USB:
+https://github.com/zhongerxin/iPhone-use
+
+In a Local Computer task, read README.en.md, doubao/README.md, and the installer.
+Check Python, Node.js, npm, full Xcode, and the USB iPhone. Clone or reuse a local
+checkout, preserve existing changes, and run python3 doubao/install.py from
+its root. Do not run the Codex installer. In Plugins · Skills · Partners, create
+an iphone_use STDIO connector with the absolute command and argument paths
+printed by the installer. Upload the iphone-use and iphone-use-setup skill
+folders from the installation directory. Enable the connector and both skills,
+then start a new Local Computer task. Toggle an existing connector off and on
+after updating. Give exact UI locations and paths for steps I need to complete,
+and wait for me before continuing.
+
+Once tools are available, read iphone-use-setup and check setup status first.
+Reuse existing configuration, healthy WDA, or an active startup job. For initial
+setup, use my own device and Apple development team to sign and start WDA.
+After pua_ready returns ready=true, call pua_screen() once to show the live
+phone in the right MCP App panel, then verify 12×34=408 in the iPhone Calculator.
+For Apple login, trust, Developer Mode, or unlocking, explain the steps and
+wait for me. Do not copy the author's device identifiers or signing settings.
+```
+
+If tools are missing, confirm the connector is enabled and start a new chat / Local Computer task. When both hosts use the same phone, follow the shared lock's waiting guidance. See the linked host READMEs for installation, updates, and troubleshooting.
+
+## Install in Claude Code
+
+The Claude Code plugin shares the existing MCP server, skills, device configuration, WDA builds, and operation lock, so an existing phone setup is reused. Requirements are listed below, plus a signed-in Claude Code CLI with plugin support; Codex CLI is not required. In the desktop app, use a **Local session in the Code tab** to see the phone in the right browser pane. Terminal CLI sessions can use a local browser instead.
+
+### Prompt for Claude Code
+
+```text
+Install iPhone Use on this Mac so Claude Code can operate my real iPhone over USB:
+https://github.com/zhongerxin/iPhone-use
+
+Read README.en.md, claude/README.md, and scripts/install_claude.sh first.
+Check the signed-in Claude Code CLI, Python, Node.js, npm, full Xcode, and USB iPhone.
+Clone or reuse a local checkout, preserve existing changes, and run
+sh scripts/install_claude.sh from its root. Use claude plugin list --json
+to confirm iphone-use@iphone-use-local is installed.
+Start a new Claude Code session or run /reload-plugins. If this session cannot
+load the new tools, explain what I need to do and wait for me before continuing.
+In the desktop app, use a Local session in the Code tab.
+
+Once tools are available, read iphone-use-claude and iphone-use-setup, then check
+setup status first. Reuse existing configuration, healthy WDA, or an active
+startup job. For initial setup, use my device, Apple development team, and
+signable bundle ID to fetch the pinned WDA, build, and start it.
+After pua_ready returns ready=true, show the phone screen and verify 12×34=408
+in the iPhone Calculator. A desktop version with hooks opens or reuses the
+preview automatically; if that confirmation is present, do not start it again.
+Otherwise, follow iphone-use-claude to start the viewer and open the complete
+returned url. If the browser pane is hidden, tell me to expand it. In terminal
+CLI sessions, give me the preview URL to open in a local browser.
+
+For Apple login, device trust, Developer Mode, passwords, or Face ID,
+explain the steps and wait for me to finish. Do not copy the author's device
+identifiers or signing settings.
+```
+
+### Manual installation
+
+Run from the source root:
+
+```sh
+sh scripts/install_claude.sh
+```
+
+The script registers the local marketplace `iphone-use-local` at user scope and installs `iphone-use@iphone-use-local`. Start a new Claude Code session or run `/reload-plugins` afterward. Keep the staging directory `dist/claude/` and rerun the installer after updating the source. Codex and Claude share the same phone; avoid operating it from both at once.
+
+For permissions, manual preview commands, authentication handoff, updates, and uninstalling, see [Using iPhone Use in Claude Code](claude/README.md) (Chinese).
 
 ## Requirements
 
 | Requirement | Purpose |
 | --- | --- |
-| macOS and Codex desktop / CLI | Local plugin installation, MCP, and the screen sidebar |
+| macOS and Codex, Claude Code, WorkBuddy, or Doubao Work | Local MCP and phone preview; Codex / Claude installation also requires the corresponding CLI |
 | Full Xcode with first-launch setup completed | Build, sign, deploy, and run WDA; Command Line Tools alone are insufficient |
 | An Apple account and development team available in Xcode | Sign the on-device WDA Runner |
 | A real iPhone connected over USB | Trust the Mac, enable Developer Mode when required, and keep it unlocked during installation / startup |
@@ -82,18 +201,6 @@ Reconnect or start a new chat, enable **iPhone Use**, and ask:
 
 Setup covers diagnostics, device discovery, signing configuration, download, background build, and startup. Existing configurations and builds are reused. Phone tasks start only after `pua_ready` returns `ready=true`.
 
-## Use with Claude Code
-
-iPhone Use also works as a Claude Code plugin. Both versions share the same MCP server, skills, and local runtime data, so a device, signing setup, and WDA build already configured in Codex can be reused. Requirements are the same as above, plus a signed-in Claude Code CLI.
-
-```sh
-sh scripts/install_claude.sh
-```
-
-The script registers the local marketplace `iphone-use-local` at user scope and installs `iphone-use@iphone-use-local`. It does not modify the Codex plugin or MCP registration. After installing, start a new Claude Code session or run `/reload-plugins` in an open one, then connect the phone with the same `iphone-use-setup` prompt shown above.
-
-For recommended permissions, the live phone screen, differences from the Codex version, and uninstalling, see [Using iPhone Use in Claude Code](README.claude.md) (Chinese).
-
 ## Features
 
 | Feature | Behavior |
@@ -119,9 +226,9 @@ Read this list while scrolling with overlap. Deduplicate entries and state the
 covered range and any remaining uncertainty.
 ```
 
-Text input and submission are separate; text is not submitted by default. The model checks key screens, recipients, counts, and final results. Passwords, verification codes, and Face ID are handled by the user; preview can be paused during handoff.
+Text input and submission are separate; text is not submitted by default. The model checks key screens, recipients, counts, and final results. Passwords, verification codes, and Face ID are handled by the user. While waiting for unlock or authentication, the widget retains the last preview beneath a translucent black overlay with a handoff gesture icon and the prompt “请在手机上接管操作” (take over on your phone). The overlay disappears when the preview resumes.
 
-Repeated preview opens in the same chat reuse the existing widget. Its toolbar offers Refresh, Home, and Screenshot. Without an image, the iPhone frame shows a dark screen with a centered status icon; the top badge displays the connection or pause state. The preview is for the user; model decisions use actual tool observations.
+Repeated preview opens in the same chat reuse the existing widget. Its toolbar offers Refresh, Home, and Screenshot. The appearance follows the connected model: only supported models show a Dynamic Island; other known rounded-screen models keep the rounded corners and frame. Pre-iPhone X models, all iPhone SE models, and unrecognized devices use a plain rectangular screen with no chassis. Without an image, the screen shows a centered status icon; the top badge displays the connection or pause state. The preview is for the user; model decisions use actual tool observations.
 
 ## Technical details
 
@@ -184,3 +291,7 @@ This project relies on the [Appium](https://github.com/appium/appium) ecosystem 
 Thanks to the maintainers and contributors of Appium, WebDriverAgent, and related projects for making real iPhone automation possible.
 
 MIT License. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
+### Direct preview interaction
+
+Click the live phone image to tap, or drag and release to swipe. Coordinates follow the displayed image as the panel resizes. Two-finger trackpad scrolling and mouse wheels scroll or page the phone, following the system scroll direction. Each wheel burst sends one swipe; momentum and input received during an operation are not queued. Long presses, phone multi-touch, pinch zoom, and keyboard input are not supported. Input is disabled while the preview is paused, offline, stale, or busy. Cancelled gestures and releases outside the image do nothing. Timed-out gestures are never replayed automatically; inspect the phone before trying again.

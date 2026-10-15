@@ -16,7 +16,7 @@ cat <<'EOF'
 
 iPhone Use is installed for Claude Code. Start a new Claude Code session, or run /reload-plugins in an open one.
 
-Recommended permissions for ~/.claude/settings.json (not written by this script; see README.claude.md):
+Recommended permissions for ~/.claude/settings.json (not written by this script; see claude/README.md):
   "permissions": {
     "allow": ["mcp__plugin_iphone-use_iphone_use__*"],
     "deny": ["mcp__plugin_iphone-use_iphone_use__pua_screen_frame",
