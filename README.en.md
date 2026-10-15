@@ -6,15 +6,24 @@
 
 Let Codex, Claude Code, WorkBuddy, or Doubao Work operate your real iPhone over USB. Describe a task in natural language: open apps, read screens, tap, scroll, enter text, collect lists, and watch the phone preview.
 
+Android phones use the separate **Android Use** plugin for Codex and Claude Code. See [Android support](#android-support-experimental) below for installation and usage.
+
+| Phone platform | Codex | Claude Code | WorkBuddy / Doubao Work |
+| --- | --- | --- | --- |
+| iPhone | Supported | Supported | Supported |
+| Android (experimental) | Supported | Supported | No dedicated adapter |
+
 The plugin connects to [WebDriverAgent](https://github.com/appium/WebDriverAgent) (WDA). It includes a local MCP server, setup and usage skills, and a live screen widget. It reuses healthy connections and existing builds; when element targeting fails, it guides the model to inspect a screenshot and try coordinates.
 
-The plugin sends anonymous usage statistics to its own PostHog project by default: starts, tool calls, connection results, durations and error categories. It uses a random installation ID and never uploads phone images, input text or device identifiers. Set `IPHONE_USE_ANALYTICS=0` or `DO_NOT_TRACK=1` and restart the MCP server to disable it. See [analytics documentation](ANALYTICS.md).
+The iPhone plugin sends anonymous usage statistics to its own PostHog project by default: starts, tool calls, connection results, durations and error categories. It uses a random installation ID and never uploads phone images, input text or device identifiers. Set `IPHONE_USE_ANALYTICS=0` or `DO_NOT_TRACK=1` and restart the MCP server to disable it. Android Use does not send these usage statistics. See [analytics documentation](ANALYTICS.md).
 
-**Before using iPhone Use, install, sign, and start WDA Runner on your own iPhone.** WDA is the on-device execution service. The prompts and setup workflow below can help your host assistant complete the initial installation; a healthy existing WDA can be reused.
+**Before using the iPhone plugin, install, sign, and start WDA Runner on your own iPhone.** WDA is the on-device execution service. The prompts and setup workflow below can help your host assistant complete the initial installation; a healthy existing WDA can be reused. Android uses its own ADB + UI Automator setup.
 
 ## Recent updates
 
-October 9–13, 2026. See the [changelog](CHANGELOG.md) for details.
+This branch adds Android Use for installation, phone control, and preview in Codex and Claude Code. See the Android section below.
+
+The following iPhone updates cover October 9–13, 2026. See the [changelog](CHANGELOG.md) for details.
 
 - **Direct preview control**: tap the image, drag with the mouse, or scroll with two fingers on a trackpad.
 - **WeChat tap improvements**: use screenshots to tap known navigation targets, with lighter reads for contacts and conversation lists.
@@ -23,7 +32,7 @@ October 9–13, 2026. See the [changelog](CHANGELOG.md) for details.
 - **Connection recovery improvements**: clearer timeout and disconnect guidance, with automatic restoration of temporary snapshot settings.
 - **Safer long-text continuation**: input stays bound to the original field and stops when the app or focus changes.
 
-## Ask Codex to install it
+## Ask Codex to install the iPhone plugin
 
 Paste this prompt into Codex running on your Mac:
 
@@ -160,7 +169,89 @@ For Android phones, run `sh scripts/install_claude_android.sh` to install the `a
 
 For permissions, manual preview commands, authentication handoff, updates, and uninstalling, see [Using iPhone Use in Claude Code](claude/README.md) (Chinese).
 
-## Requirements
+## Android support (experimental)
+
+**Android Use** is a separately installed plugin that controls real Android phones through ADB + UI Automator. The Codex plugin provides 17 model tools, 2 widget-only tools, setup and usage skills, and a native phone screen panel. Its tool namespace and device configuration are independent of the iPhone plugin, so both can be installed.
+
+### Install in Codex
+
+Requirements: macOS, Codex CLI with plugin support, Python 3.9+, and an Android phone connected over USB. Enable Developer options and USB debugging on the phone, then authorize this computer. Android does not require Xcode, an Apple account, Android Studio, or root.
+
+Run from the source root:
+
+```sh
+sh scripts/install_android.sh
+```
+
+The installer creates an isolated environment at `~/.local/share/android-use/venv`, installs pinned Python dependencies, downloads Google Platform Tools if needed, and registers the local marketplace `android-use-local` and plugin `android-use@android-use-local`. Reconnect or start a new Codex chat to load the `android_use` tools and the `android-use` and `android-use-setup` skills. Rerun the same installer after updating the source.
+
+### Prompt for Codex
+
+```text
+Install and configure Android Use on this Mac so Codex can operate my Android phone over USB.
+
+Reuse a local source checkout that includes Android support. Read README.en.md,
+android/README.md, and scripts/install_android.sh first. Check Codex CLI, Python,
+ADB, and USB debugging. Preserve existing changes and run
+sh scripts/install_android.sh from the source root.
+If this chat cannot load the new tools, tell me to reconnect or start a new chat.
+
+Once tools are available, read android-use-setup and android-use. Use tools from
+the android_use namespace. Call pua_setup(action="status") first and reuse
+existing configuration and healthy services. If multiple devices are connected,
+ask me to select one before configuring it. Start only once when needed and poll
+the same job_id. Wait for pua_ready to return ready=true, then show the phone screen.
+For USB authorization, unlocking, or authentication, explain the steps and wait
+for me to complete them. Do not use the iPhone tools or copy the author's serial.
+```
+
+After installation, you can ask in a new chat with the plugin loaded:
+
+> Use android-use-setup to configure my Android phone, verify READY, and show the phone screen.
+
+### Features and current limits
+
+- **Phone control:** read native UI nodes or screenshots, tap elements or display coordinates, swipe, use Back or Home, and launch apps. Send complete Chinese or Unicode text in a single request, up to 10,000 characters; Android does not implement iPhone-style chunk continuation, and apps may impose their own limits. Submission requires exact text readback.
+- **Selectors and coordinates:** use Android fields such as `text`, `resource_id`, and `content_desc`. Actions use display pixels. Convert scaled screenshot coordinates using the x and y ratios in `image.pixel_to_display`, and observe again after rotation.
+- **Workflows:** batch actions and bounded list search / collection. Observe uncertain outcomes before continuing; clicks and input are not replayed automatically.
+- **Phone preview:** view and operate the phone in Codex's native panel, with geometry based on the actual display. Pause preview for passwords or authentication and let the user take over.
+- **Optional video capture:** install scrcpy and FFmpeg with `brew install scrcpy ffmpeg` on macOS. If unavailable, capture falls back to UI Automator JPEG or ADB PNG screenshots.
+- **Validation scope:** real-device validation targets macOS, Samsung SM-G9500 / Android 9, and USB. Android 11+ wireless pairing endpoints are implemented but still need device validation. Windows, other manufacturers, and custom-rendered editors are not fully supported.
+
+Configuration, runtime state, and screenshots stay outside the repository. See [Android documentation](android/README.md) for full behavior and CLI diagnostics. Claude Code uses `sh scripts/install_claude_android.sh`.
+
+### Updates and connection troubleshooting
+
+From a source checkout with Android support, update and reinstall the Codex plugin:
+
+```sh
+git pull --ff-only
+sh scripts/install_android.sh
+codex plugin list --json
+```
+
+Confirm `android-use@android-use-local` is installed and enabled, then reconnect or start a new chat. For Claude Code, rerun `sh scripts/install_claude_android.sh` and start a new session or run `/reload-plugins`. Read `android-use-claude` on first use and follow its instructions to open the local preview URL. Both hosts share the Android environment and device configuration; avoid operating the same phone concurrently.
+
+Dependencies default to `~/.local/share/android-use/venv`. Device configuration, startup logs, and screenshots default to `~/.local/share/android-use/state/`. Override the environment root, state directory, or ADB path with `ANDROID_USE_HOME`, `ANDROID_USE_STATE_DIR`, or `ANDROID_USE_ADB`. Keep custom settings consistent during installation and when the host starts MCP.
+
+| Symptom | Action |
+| --- | --- |
+| No `android_use` tools in this chat | Confirm the plugin is enabled, then reconnect or start a new chat |
+| No device or `unauthorized` | Check the data cable and USB debugging; unlock the phone and authorize the computer |
+| Multiple devices | Discover them and let the user choose before calling configure with the actual serial |
+| ADB online but automation unavailable | Check setup status, start if needed, poll the same job_id, and check READY again |
+| Stalled preview | Try Refresh; read-only channel failures can trigger bounded recovery. A closed host MCP connection requires host reconnection |
+| Locked phone or authentication | Let the user unlock or authenticate on the phone; resume authentication pauses only after user confirmation |
+
+Before reconnecting, query status from the source root:
+
+```sh
+sh scripts/android_mcp.sh --tool pua_setup --arguments '{"action":"status"}'
+```
+
+ADB online does not prove readiness: phone tasks require `pua_ready` to return `ready=true`. Recovery never automatically replays uncertain clicks or input.
+
+## iPhone requirements
 
 | Requirement | Purpose |
 | --- | --- |
@@ -205,6 +296,8 @@ Setup covers diagnostics, device discovery, signing configuration, download, bac
 
 ## Features
 
+This section describes the iPhone plugin. See the Android section above for its input behavior, coordinates, preview appearance, and compatibility limits.
+
 | Feature | Behavior |
 | --- | --- |
 | App navigation | Launch apps and navigate search, details, settings, or drafts |
@@ -234,6 +327,8 @@ Repeated preview opens in the same chat reuse the existing widget. Its toolbar o
 
 ## Technical details
 
+This section describes the iPhone / WDA implementation. Android uses separate ADB and UI Automator channels and reuses parts of the protocol and screen widget.
+
 - **Local USB transport:** Python accesses WDA through a loopback-only forwarder; runtime and signing data stay on the Mac.
 - **Reuse:** persistent HTTP connections, WDA sessions, healthy services, and builds reduce repeated work.
 - **Compact observations and compound actions:** omit duplicate tree fields, skip XML for screenshot-only reads, and reduce turns with batch / scroll-search / list collection.
@@ -246,7 +341,7 @@ These changes reduce duplicate requests and model round trips. Overall task spee
 
 ## Tools
 
-There are 17 model tools and 2 additional widget-only tools.
+Each platform provides 17 model tools and 2 widget-only tools, `pua_screen_frame` and `pua_screen_action`. iPhone uses the `iphone_use` namespace; Android uses `android_use`. Parameters, selectors, and coordinate units follow each platform's skills and tool schemas.
 
 | Tools | Purpose |
 | --- | --- |
@@ -260,7 +355,9 @@ There are 17 model tools and 2 additional widget-only tools.
 
 Abnormal UI states return a screenshot for the model to inspect before choosing another action. Scroll search performs at most one swipe per call and stops if the target remains unreachable; occlusion, unproven scroll progress, input mismatch, and failed page expectations use the same fallback. Existing screenshots are reused, without automatic extra gestures or action replay.
 
-## Runtime data and updates
+## iPhone runtime data and updates
+
+For Android environments, state directories, updates, and troubleshooting, see the Android section above.
 
 New installations use `~/.local/share/iphone-use/`. Set `IPHONE_USE_STATE_DIR` for another external directory; `WDA_STATE_DIR` remains supported. If the new default directory does not exist, an existing older configuration directory is reused so device configuration and builds are retained.
 
@@ -278,19 +375,29 @@ Reconnect the chat after updating. For connection failures, check USB, unlocking
 ```sh
 npm ci --prefix ui --no-audit --no-fund
 npm run build --prefix ui
+# Use a Python environment with Android dependencies for the full checks.
+# Default installation location:
+. ~/.local/share/android-use/venv/bin/activate
 sh scripts/check.sh
 python3 scripts/package.py
+python3 scripts/package_android.py
 ```
 
-The UI builds into self-contained HTML. Source packages are written to `dist/iphone-use-<version>-source.zip`; normal installation and use do not require rebuilding the UI. Installed plugins retain the complete widget source, styles, build scripts, configuration, dependency lockfile, and widget tests for local maintenance.
+The UI builds into self-contained HTML. Source packages at `dist/iphone-use-<version>-source.zip` include both platforms. `scripts/package_android.py` stages the Android Codex plugin at `dist/android-marketplace/android-use/` and writes `dist/android-use-<version>.zip`. `scripts/package_claude.py` stages both Claude Code plugins at `dist/claude/`.
+
+Normal installation and use do not require rebuilding the UI. The iPhone installation retains the complete widget source, styles, build scripts, configuration, dependency lockfile, and tests. Android packages use an explicit runtime allowlist and include the built widget, without the complete UI build inputs. Use a source archive or repository checkout to maintain the Android UI. With a custom `ANDROID_USE_HOME`, run checks in that directory's virtual environment.
 
 See [screen preview and recovery](skills/iphone-use/references/screen.md), [app identifiers](skills/iphone-use/references/apps.md), [troubleshooting](skills/iphone-use-setup/references/troubleshooting.md), and [changelog](CHANGELOG.md).
+
+See also [Android installation, features, and recovery](android/README.md).
 
 ## Dependencies and acknowledgements
 
 This project relies on the [Appium](https://github.com/appium/appium) ecosystem and [WebDriverAgent](https://github.com/appium/WebDriverAgent). WDA provides the on-device automation service; [appium-ios-device](https://github.com/appium/appium-ios-device) provides USB device communication, port forwarding, and screen-stream connectivity. iPhone Use adds the Codex plugin, MCP tools, setup guidance, and screen widget. A separate Appium Server is not required.
 
 Thanks to the maintainers and contributors of Appium, WebDriverAgent, and related projects for making real iPhone automation possible.
+
+Android uses Google Platform Tools, openatx/uiautomator2, adbutils, and Pillow. Optional video capture uses locally installed scrcpy and FFmpeg. See [Android documentation](android/README.md) for installation requirements; Android plugin packages also include their third-party dependency notices.
 
 MIT License. See [third-party notices](THIRD_PARTY_NOTICES.md).
 

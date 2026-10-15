@@ -6,15 +6,24 @@
 
 让 Codex、Claude Code、WorkBuddy 或豆包工作通过 USB 操作你的真实 iPhone。用自然语言描述任务，助手就能打开 App、读取页面、点击、滚动、输入文字、整理列表，并展示手机屏幕。
 
+Android 手机可使用独立的 **Android Use** 插件，支持 Codex 和 Claude Code。Codex 安装和使用步骤见下方 [Android 支持](#android-支持实验版)。
+
+| 手机平台 | Codex | Claude Code | WorkBuddy / 豆包工作 |
+| --- | --- | --- | --- |
+| iPhone | 支持 | 支持 | 支持 |
+| Android（实验版） | 支持 | 支持 | 暂无专用适配 |
+
 iPhone Use 使用 [WebDriverAgent](https://github.com/appium/WebDriverAgent)（WDA）与 iPhone 通信，包含本地 MCP 服务、安装与使用技能，以及实时屏幕 widget。它优先复用现有连接与构建；控件定位失败时，指导模型查看截图并尝试坐标点击。
 
-插件默认向独立的 PostHog 项目发送匿名使用统计，包括启动、工具调用、连接状态、耗时和错误类别。使用随机安装标识，不上传手机画面、输入内容或设备标识。设置 `IPHONE_USE_ANALYTICS=0` 或 `DO_NOT_TRACK=1` 并重启 MCP 服务可关闭。详见 [埋点与分析说明](ANALYTICS.md)。
+iPhone 插件默认向独立的 PostHog 项目发送匿名使用统计，包括启动、工具调用、连接状态、耗时和错误类别。使用随机安装标识，不上传手机画面、输入内容或设备标识。设置 `IPHONE_USE_ANALYTICS=0` 或 `DO_NOT_TRACK=1` 并重启 MCP 服务可关闭。Android Use 不发送这些使用统计。详见 [埋点与分析说明](ANALYTICS.md)。
 
-**使用前，需要先在你自己的 iPhone 上安装、签名并启动 WDA Runner。** WDA 是运行在手机上的执行服务；下面的提示词和 setup 流程可以让所用宿主的助手协助完成首次安装，已有健康的 WDA 可直接复用。
+**使用 iPhone 插件前，需要先在你自己的 iPhone 上安装、签名并启动 WDA Runner。** WDA 是运行在手机上的执行服务；下面的提示词和 setup 流程可以让所用宿主的助手协助完成首次安装，已有健康的 WDA 可直接复用。Android 使用独立的 ADB + UI Automator 流程。
 
 ## 最近更新
 
-2026-10-09 至 2026-10-13，完整记录见 [更新记录](CHANGELOG.md)。
+本分支新增 Android Use，支持 Codex 和 Claude Code 的 Android 安装、操作与预览，详见下方 Android 章节。
+
+以下为 2026-10-09 至 2026-10-13 的 iPhone 更新，完整记录见 [更新记录](CHANGELOG.md)。
 
 - **预览直接操作**：支持点击画面、鼠标拖动和触控板双指滚动。
 - **微信点击优化**：已知导航目标直接看图点击，通讯录和会话列表按需轻量读取。
@@ -23,7 +32,7 @@ iPhone Use 使用 [WebDriverAgent](https://github.com/appium/WebDriverAgent)（W
 - **连接恢复改进**：完善超时与断线指引，自动恢复临时快照设置。
 - **长文本续传保护**：续传绑定原输入框，切换 App 或焦点后停止，避免误写。
 
-## 用一段提示词让 Codex 安装
+## 用一段提示词让 Codex 安装 iPhone 插件
 
 将下面这段话复制到本机 Codex：
 
@@ -147,9 +156,85 @@ Android 手机可运行 `sh scripts/install_claude_android.sh`，安装同一 ma
 
 ## Android 支持（实验版）
 
-新增独立的 **Android Use** 插件，支持 ADB + UI Automator、中文输入、批处理、列表采集及按需屏幕预览。三星 SM-G9500 / Android 9 已完成基础真机验证。安装入口为 `sh scripts/install_android.sh`，功能范围和限制见 [Android 文档](android/README.md)。
+**Android Use** 是独立安装的插件，使用 ADB + UI Automator 连接和操作真实 Android 手机。Codex 版包含 17 个模型工具、2 个仅供屏幕组件使用的工具、安装与使用技能，以及原生手机屏幕面板；与 iPhone 插件使用不同的工具命名空间和设备配置，可分别安装。
 
-## 安装依赖
+### 在 Codex 中安装
+
+需要 macOS、支持插件的 Codex CLI、Python 3.9+ 和通过 USB 连接的 Android 手机。手机需开启开发者选项与 USB 调试，并在手机上允许此电脑调试。Android 版无需 Xcode、Apple 账号、Android Studio 或 root。
+
+在源码根目录运行：
+
+```sh
+sh scripts/install_android.sh
+```
+
+安装器会创建独立的 `~/.local/share/android-use/venv`，安装固定版本的 Python 依赖，按需下载 Google Platform Tools，并注册本地 marketplace `android-use-local` 和插件 `android-use@android-use-local`。安装完成后重连或新开 Codex 聊天，加载 `android_use` 工具和 `android-use`、`android-use-setup` 两个技能。更新源码后重新运行同一安装脚本。
+
+### 发给 Codex 的提示词
+
+```text
+请在这台 Mac 上安装和配置 Android Use，让 Codex 操作我通过 USB 连接的 Android 手机。
+
+复用本机包含 Android 支持的源码，先读取 README.md、android/README.md 和 scripts/install_android.sh，
+检查 Codex CLI、Python、ADB 和手机 USB 调试状态。保留已有改动，
+在源码根目录运行 sh scripts/install_android.sh。
+如果当前聊天没有加载新工具，明确告诉我重连或新开聊天后继续。
+
+工具可用后读取 android-use-setup 和 android-use，使用 android_use 命名空间的工具，
+先调用 pua_setup(action="status")，复用已有配置和健康服务。
+发现多台设备时让我选择，再 configure；需要启动时只 start 一次，
+返回 job_id 后轮询同一个任务，直到 pua_ready 返回 ready=true，再显示手机屏幕。
+USB 调试授权、解锁或认证需要我操作时，说明具体步骤，等我完成后继续。
+不要使用 iPhone 的同名工具，也不要照搬作者的设备序列号。
+```
+
+已经安装时，可直接在加载了插件的新聊天中输入：
+
+> 用 android-use-setup 配置我的 Android 手机，验证 READY，然后显示手机屏幕。
+
+### 功能与当前限制
+
+- **手机操作**：读取原生控件或截图、按控件或坐标点击、滑动、返回与主页、启动应用。文字一次输入完整中文及 Unicode 文本，单次最多 10000 字符；没有 iPhone 的分段续传功能，App 自身也可能限制长度。提交前精确读回核对。
+- **定位与坐标**：选择器使用 Android 的 `text`、`resource_id`、`content_desc` 等原生字段；坐标使用显示像素，缩放截图坐标按 `image.pixel_to_display` 的两个比例分别换算 x、y。旋转后重新观察。
+- **连续任务**：支持批处理、有界列表搜索与采集；动作结果不确定时先观察，不自动重放点击或输入。
+- **手机屏幕**：在 Codex 原生面板预览并操作手机，画面按实际尺寸适配横竖屏；密码或认证场景暂停预览，由用户接管。
+- **可选视频预览**：安装 `scrcpy` 和 `ffmpeg` 可使用视频采集；不可用时回退到 UI Automator JPEG 或 ADB PNG 截图。macOS 可运行 `brew install scrcpy ffmpeg` 安装可选依赖。
+- **验证范围**：目前以 macOS、三星 SM-G9500 / Android 9 的 USB 连接为真机验证目标。Android 11+ 无线调试配对接口已实现，仍需真机验证；Windows、其他厂商设备和自绘输入框尚未充分适配。
+
+配置、运行状态和截图保存在仓库外。完整功能、恢复流程及 CLI 排查命令见 [Android 使用说明](android/README.md)；Claude Code 的安装入口是 `sh scripts/install_claude_android.sh`。
+
+### 更新与连接排查
+
+在包含 Android 支持的源码目录更新并重新安装 Codex 插件：
+
+```sh
+git pull --ff-only
+sh scripts/install_android.sh
+codex plugin list --json
+```
+
+确认 `android-use@android-use-local` 已安装并启用，再重连或新开聊天。Claude Code 则重新运行 `sh scripts/install_claude_android.sh`，新开会话或执行 `/reload-plugins`；首次使用读取 `android-use-claude`，按指引打开本机预览地址。两个宿主共用 Android 环境与设备配置，避免同时操作同一台手机。
+
+默认依赖环境位于 `~/.local/share/android-use/venv`，设备配置、启动日志和截图位于 `~/.local/share/android-use/state/`。可通过 `ANDROID_USE_HOME`、`ANDROID_USE_STATE_DIR`、`ANDROID_USE_ADB` 指定环境根目录、状态目录和 ADB 路径；自定义设置需在安装与宿主启动 MCP 时保持一致。
+
+| 现象 | 处理方式 |
+| --- | --- |
+| 当前聊天找不到 `android_use` 工具 | 确认插件已启用，重连或新开聊天 |
+| 找不到设备或显示 `unauthorized` | 检查数据线、USB 调试；解锁手机并允许此电脑调试 |
+| 多台设备在线 | 先发现设备，让用户选择后使用实际序列号 `configure` |
+| ADB 在线但自动化服务不可用 | 查询 setup 状态，按需 start；有 `job_id` 就继续查询同一任务，之后重新检查 READY |
+| 预览停滞 | 先用刷新按钮；只读通道故障可触发有界恢复。宿主 MCP 连接已关闭时，需要重连宿主 |
+| 手机锁定或进入认证 | 用户在手机上完成解锁或认证；认证接管需用户确认后才能恢复预览 |
+
+重连前可在源码根目录查询状态：
+
+```sh
+sh scripts/android_mcp.sh --tool pua_setup --arguments '{"action":"status"}'
+```
+
+ADB 在线不等于可操作，仍以 `pua_ready` 返回 `ready=true` 为准。故障恢复不会自动重放不确定的点击或输入。
+
+## iPhone 安装依赖
 
 | 依赖 | 用途 |
 | --- | --- |
@@ -198,6 +283,8 @@ sh scripts/install.sh
 
 ## 可以做什么
 
+以下为 iPhone 插件的功能；Android 的输入、坐标、屏幕外观与兼容范围见上方 Android 章节。
+
 | 功能 | 示例 |
 | --- | --- |
 | App 导航与操作 | 打开目标 App，进入搜索、详情、设置或草稿页面 |
@@ -226,6 +313,8 @@ sh scripts/install.sh
 
 ## 技术亮点
 
+本节描述 iPhone / WDA 实现。Android 使用独立的 ADB 与 UI Automator 通道，并复用部分协议和屏幕组件。
+
 - **本地 USB 通道。** Python MCP 服务通过本机 loopback 转发访问 WDA，运行数据和签名构建保留在本机。
 - **减少重复工作。** 复用 HTTP 连接、WDA session、健康服务与已有构建；首次任务确认 READY，后续沿健康通道继续。
 - **紧凑观察与组合动作。** 控件树省略重复字段；仅需截图时不生成 XML；batch、滚动查找和列表采集减少工具回合。
@@ -238,7 +327,7 @@ sh scripts/install.sh
 
 ## 工具概览
 
-模型可用 17 个工具，另有 2 个仅供屏幕 widget 使用的工具。
+iPhone 与 Android 各提供 17 个模型工具，另有 2 个仅供屏幕 widget 使用的工具 `pua_screen_frame`、`pua_screen_action`。两者分别位于 `iphone_use`、`android_use` 命名空间；同名工具的参数、选择器和坐标单位以各自技能及工具 schema 为准。
 
 | 工具 | 用途 |
 | --- | --- |
@@ -252,7 +341,9 @@ sh scripts/install.sh
 
 界面异常时先返回截图，再由模型判断下一步：滚动查找一次最多滑一次，仍找不到可点击目标就暂停；遮挡、滚动无进展、输入不符或预期页面未出现也走截图兜底。已有截图直接复用，不自动继续盲滑或重放操作。
 
-## 本机数据与升级
+## iPhone 本机数据与升级
+
+Android 的环境、状态目录、更新与排查步骤见上方 Android 章节。
 
 新安装默认使用 `~/.local/share/iphone-use/`，可通过 `IPHONE_USE_STATE_DIR` 指定外部目录；原 `WDA_STATE_DIR` 仍兼容。升级时若新目录不存在，会继续使用检测到的旧配置目录，保留设备、签名和构建。不要为了改名删除运行数据。
 
@@ -272,15 +363,21 @@ sh scripts/install.sh
 ```sh
 npm ci --prefix ui --no-audit --no-fund
 npm run build --prefix ui
+# 运行完整检查前，使用已安装 Android 依赖的 Python 环境；默认安装位置：
+. ~/.local/share/android-use/venv/bin/activate
 sh scripts/check.sh
 python3 scripts/package.py
+python3 scripts/package_android.py
 ```
 
-构建结果是自包含屏幕 HTML，源代码包位于 `dist/iphone-use-<版本>-source.zip`。安装和普通使用不需要重新构建 UI。安装后的插件仍完整保留 widget 的源码、样式、构建脚本、配置、依赖锁文件和测试，便于本地维护。
+构建结果是自包含屏幕 HTML，源代码包位于 `dist/iphone-use-<版本>-source.zip`，包含两个平台的源码。Android Codex 插件由 `scripts/package_android.py` 单独打包，暂存于 `dist/android-marketplace/android-use/`，压缩包为 `dist/android-use-<版本>.zip`。Claude Code 的两个插件由 `scripts/package_claude.py` 暂存到 `dist/claude/`。
+
+安装和普通使用不需要重新构建 UI。iPhone 安装包保留完整 widget 源码、样式、构建脚本、配置、依赖锁文件和测试；Android 安装包按运行时白名单分发，包含构建后的 widget，不包含完整 UI 构建输入。维护 Android UI 时请使用源代码包或仓库源码。自定义了 `ANDROID_USE_HOME` 时，使用该目录下的虚拟环境运行检查。
 
 - [屏幕预览与恢复](skills/iphone-use/references/screen.md)
 - [App 标识参考](skills/iphone-use/references/apps.md)
 - [安装与连接故障排查](skills/iphone-use-setup/references/troubleshooting.md)
+- [Android 安装、功能与故障恢复](android/README.md)
 - [更新记录](CHANGELOG.md)
 
 ## 依赖与致谢
@@ -288,5 +385,7 @@ python3 scripts/package.py
 本项目依赖 [Appium](https://github.com/appium/appium) 生态与 [WebDriverAgent](https://github.com/appium/WebDriverAgent)：WDA 提供手机端的自动化执行服务，[appium-ios-device](https://github.com/appium/appium-ios-device) 提供 USB 设备通信、端口转发与屏幕流连接能力。iPhone Use 在这些基础上提供 Codex 插件、MCP 工具、安装引导与屏幕 widget，无需单独运行 Appium Server。
 
 感谢 Appium、WebDriverAgent 及相关项目的维护者和贡献者，让真实 iPhone 的自动化操作成为可能。
+
+Android 部分依赖 Google Platform Tools、openatx/uiautomator2、adbutils 与 Pillow；可选视频采集使用本机安装的 scrcpy 和 FFmpeg。安装要求见 [Android 使用说明](android/README.md)，Android 插件包另附对应的第三方依赖声明。
 
 MIT License。第三方组件说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
