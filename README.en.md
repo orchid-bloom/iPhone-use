@@ -15,7 +15,7 @@ Android phones use the separate **Android Use** plugin for Codex and Claude Code
 
 The plugin connects to [WebDriverAgent](https://github.com/appium/WebDriverAgent) (WDA). It includes a local MCP server, setup and usage skills, and a live screen widget. It reuses healthy connections and existing builds; when element targeting fails, it guides the model to inspect a screenshot and try coordinates.
 
-The iPhone plugin sends anonymous usage statistics to its own PostHog project by default: starts, tool calls, connection results, durations and error categories. It uses a random installation ID and never uploads phone images, input text or device identifiers. Set `IPHONE_USE_ANALYTICS=0` or `DO_NOT_TRACK=1` and restart the MCP server to disable it. Android Use does not send these usage statistics. See [analytics documentation](ANALYTICS.md).
+The iPhone plugin sends anonymous usage statistics to its own PostHog project and GA4 property by default: usage starts, tool calls, connection results, durations and error categories. It uses a random installation ID and never uploads phone images, input text or device identifiers. Set `IPHONE_USE_ANALYTICS=0` or `DO_NOT_TRACK=1` and restart the MCP server to disable it. Android Use does not send these usage statistics. See [analytics documentation](ANALYTICS.md).
 
 **Before using the iPhone plugin, install, sign, and start WDA Runner on your own iPhone.** WDA is the on-device execution service. The prompts and setup workflow below can help your host assistant complete the initial installation; a healthy existing WDA can be reused. Android uses its own ADB + UI Automator setup.
 
@@ -341,12 +341,13 @@ These changes reduce duplicate requests and model round trips. Overall task spee
 
 ## Tools
 
-Each platform provides 17 model tools and 2 widget-only tools, `pua_screen_frame` and `pua_screen_action`. iPhone uses the `iphone_use` namespace; Android uses `android_use`. Parameters, selectors, and coordinate units follow each platform's skills and tool schemas.
+iPhone provides 18 model tools and Android provides 17; each also has 2 widget-only tools, `pua_screen_frame` and `pua_screen_action`. iPhone uses the `iphone_use` namespace; Android uses `android_use`. Parameters, selectors, and coordinate units follow each platform's skills and tool schemas.
 
 | Tools | Purpose |
 | --- | --- |
 | `pua_doctor`, `pua_setup`, `pua_ready` | Diagnostics, configuration, background installation / startup, readiness |
-| `pua_observe`, `pua_find` | Trees, screenshots, and target queries |
+| `pua_observe`, `pua_find` | Trees, observation screenshots, and target queries |
+| `pua_screenshot` | Take an iOS system screenshot into iPhone Photos for use or sharing on the phone |
 | `pua_apps`, `pua_launch_app` | App identifiers, installation evidence, app launch |
 | `pua_tap`, `pua_swipe`, `pua_press_button` | Taps, swipes, and device buttons |
 | `pua_type_text`, `pua_wait` | Unicode input and bounded waits |

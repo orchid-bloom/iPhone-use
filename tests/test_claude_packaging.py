@@ -82,7 +82,7 @@ class ClaudePackagingTests(unittest.TestCase):
                                  text=True, timeout=15, check=True, env=environment)
         replies = [json.loads(line) for line in process.stdout.splitlines()]
         self.assertTrue(all('error' not in reply for reply in replies), str(replies))
-        self.assertEqual(len(replies[1]['result']['tools']), 19)
+        self.assertEqual(len(replies[1]['result']['tools']), 20)
 
     def test_viewer_dependencies_keep_the_codex_source_package_buildable(self):
         # package.py 把 claude/ 整体打进源码包并拒绝符号链接；viewer 的 .npmrc 关闭 bin 链接。

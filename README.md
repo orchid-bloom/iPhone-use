@@ -15,7 +15,7 @@ Android 手机可使用独立的 **Android Use** 插件，支持 Codex 和 Claud
 
 iPhone Use 使用 [WebDriverAgent](https://github.com/appium/WebDriverAgent)（WDA）与 iPhone 通信，包含本地 MCP 服务、安装与使用技能，以及实时屏幕 widget。它优先复用现有连接与构建；控件定位失败时，指导模型查看截图并尝试坐标点击。
 
-iPhone 插件默认向独立的 PostHog 项目发送匿名使用统计，包括启动、工具调用、连接状态、耗时和错误类别。使用随机安装标识，不上传手机画面、输入内容或设备标识。设置 `IPHONE_USE_ANALYTICS=0` 或 `DO_NOT_TRACK=1` 并重启 MCP 服务可关闭。Android Use 不发送这些使用统计。详见 [埋点与分析说明](ANALYTICS.md)。
+iPhone 插件默认向独立的 PostHog 项目及 GA4 属性发送匿名使用统计，包括实际使用开始、工具调用、连接状态、耗时和错误类别。使用随机安装标识，不上传手机画面、输入内容或设备标识。设置 `IPHONE_USE_ANALYTICS=0` 或 `DO_NOT_TRACK=1` 并重启 MCP 服务可关闭。Android Use 不发送这些使用统计。详见 [埋点与分析说明](ANALYTICS.md)。
 
 **使用 iPhone 插件前，需要先在你自己的 iPhone 上安装、签名并启动 WDA Runner。** WDA 是运行在手机上的执行服务；下面的提示词和 setup 流程可以让所用宿主的助手协助完成首次安装，已有健康的 WDA 可直接复用。Android 使用独立的 ADB + UI Automator 流程。
 
@@ -327,12 +327,13 @@ sh scripts/install.sh
 
 ## 工具概览
 
-iPhone 与 Android 各提供 17 个模型工具，另有 2 个仅供屏幕 widget 使用的工具 `pua_screen_frame`、`pua_screen_action`。两者分别位于 `iphone_use`、`android_use` 命名空间；同名工具的参数、选择器和坐标单位以各自技能及工具 schema 为准。
+iPhone 提供 18 个模型工具，Android 提供 17 个，另各有 2 个仅供屏幕 widget 使用的工具 `pua_screen_frame`、`pua_screen_action`。两者分别位于 `iphone_use`、`android_use` 命名空间；同名工具的参数、选择器和坐标单位以各自技能及工具 schema 为准。
 
 | 工具 | 用途 |
 | --- | --- |
 | `pua_doctor`、`pua_setup`、`pua_ready` | 环境诊断、设备配置、后台安装 / 启动与就绪检查 |
-| `pua_observe`、`pua_find` | 控件树、截图与目标查询 |
+| `pua_observe`、`pua_find` | 控件树、观察截图与目标查询 |
+| `pua_screenshot` | 触发 iOS 系统截屏并存入手机相册，供手机内发送、上传或使用 |
 | `pua_apps`、`pua_launch_app` | 查询 App 标识、读取安装证据和启动 App |
 | `pua_tap`、`pua_swipe`、`pua_press_button` | 点击、滑动、主屏幕等操作 |
 | `pua_type_text`、`pua_wait` | Unicode 输入与有界等待 |
